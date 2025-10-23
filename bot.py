@@ -1,13 +1,12 @@
 import os
 import requests
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
 import openai
 
-# 🔑 کلیدها (بعداً تو Render می‌ذاریم)
+# 🔑 کلیدها
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-
 openai.api_key = OPENAI_API_KEY
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -18,7 +17,6 @@ async def handle_symbol(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         url = f"https://api.binance.com/api/v3/ticker/24hr?symbol={symbol}"
         data = requests.get(url).json()
-
         price = float(data["lastPrice"])
         high = float(data["highPrice"])
         low = float(data["lowPrice"])
@@ -28,7 +26,7 @@ async def handle_symbol(update: Update, context: ContextTypes.DEFAULT_TYPE):
         قیمت فعلی: {price}
         سقف ۲۴ ساعته: {high}
         کف ۲۴ ساعته: {low}
-        بر اساس این داده‌ها، حمایت‌ها و مقاومت‌های مهم و نقطه ورود احتمالی رو بگو.
+        بر اساس این داده‌ها، حمایت‌ها و مقاومت‌های مهم و نقطه ورود احتمالی رو توضیح بده.
         """
 
         response = openai.ChatCompletion.create(
@@ -42,8 +40,11 @@ async def handle_symbol(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text("نماد معتبر نیست یا دیتای بایننس در دسترس نیست 😅")
 
-app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-app.add_handler(CommandHandler("start", start))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_symbol))
+def main():
+    app = Application.builder().token(TELEGRAM_TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_symbol))
+    app.run_polling()
 
-app.run_polling()
+if __name__ == "__main__":
+    main()
